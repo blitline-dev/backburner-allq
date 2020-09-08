@@ -1,8 +1,8 @@
 module Backburner
   class Configuration
-    PRIORITY_LABELS = { :high => 0, :medium => 100, :low => 200 }
+    PRIORITY_LABELS = { :high => 0, :medium => 5, :low => 9 }
 
-    attr_accessor :beanstalk_url       # beanstalk url connection
+    attr_accessor :allq_url       # beanstalk url connection
     attr_accessor :tube_namespace      # namespace prefix for every queue
     attr_reader   :namespace_separator # namespace separator
     attr_accessor :default_priority    # default job priority
@@ -21,10 +21,10 @@ module Backburner
     attr_accessor :job_parser_proc     # proc to parse a job body from a string
 
     def initialize
-      @beanstalk_url       = "beanstalk://127.0.0.1"
-      @tube_namespace      = "backburner.worker.queue"
+      @allq_url       = "127.0.0.1:8090"
+      @tube_namespace      = ""
       @namespace_separator = "."
-      @default_priority    = 65536
+      @default_priority    = 5
       @respond_timeout     = 120
       @on_error            = nil
       @max_job_retries     = 0

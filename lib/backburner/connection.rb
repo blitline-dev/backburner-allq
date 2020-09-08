@@ -4,7 +4,7 @@ module Backburner
   class Connection < SimpleDelegator
     class BadURL < RuntimeError; end
 
-    attr_accessor :url, :beanstalk
+    attr_accessor :url, :allq_wrapper
 
     # If a proc is provided, it will be called (and given this connection as an
     # argument) whenever the connection is reconnected.
@@ -18,31 +18,31 @@ module Backburner
     # be used)
     def initialize(url, &on_reconnect)
       @url = url
-      @beanstalk = nil
+      @allq_wrapper = nil
       @on_reconnect = on_reconnect
       connect!
     end
 
     # Close the connection, if it exists
     def close
-      @beanstalk.close if @beanstalk
-      @beanstalk = nil
-      __setobj__(@beanstalk)
+      @allq_wrapper.close if @allq_wrapper
+      @allq_wrapper = nil
+      __setobj__(@allq_wrapper)
     end
 
-    # Determines if the connection to Beanstalk is currently open
+    # Determines if the connection to allq is currently open
     def connected?
       begin
-        !!(@beanstalk && @beanstalk.connection && @beanstalk.connection.connection && !@beanstalk.connection.connection.closed?) # Would be nice if beaneater provided a connected? method
+        !!(@allq_wrapper && @allq_wrapper.connection && @allq_wrapper.connection.connection && !@allq_wrapper.connection.connection.closed?) # Would be nice if beaneater provided a connected? method
       rescue
         false
       end
     end
 
-    # Attempt to reconnect to Beanstalk. Note: the connection will not be watching
+    # Attempt to reconnect to allq. Note: the connection will not be watching
     # or using the tubes it was before it was reconnected (as it's actually a
     # completely new connection)
-    # @raise [Beaneater::NotConnected] If beanstalk fails to connect
+    # @raise [Beaneater::NotConnected] If allq fails to connect
     def reconnect!
       close
       connect!
@@ -50,7 +50,7 @@ module Backburner
     end
 
     # Yield to a block that will be retried several times if the connection to
-    # beanstalk goes down and is able to be re-established.
+    # allq goes down and is able to be re-established.
     #
     # @param options Hash Options. Valid options are:
     #   :max_retries       Integer The maximum number of times the block will be yielded to.
@@ -82,28 +82,39 @@ module Backburner
 
     protected
 
-    # Attempt to ensure we're connected to Beanstalk if the missing method is
+    # Attempt to ensure we're connected to allq if the missing method is
     # present in the delegate and we haven't shut down the connection on purpose
-    # @raise [Beaneater::NotConnected] If beanstalk fails to connect after multiple attempts.
+    # @raise [Beaneater::NotConnected] If allq fails to connect after multiple attempts.
     def method_missing(m, *args, &block)
       ensure_connected! if respond_to_missing?(m, false)
       super
     end
 
-    # Connects to a beanstalk queue
+    # Connects to a allq queue
     # @raise Beaneater::NotConnected if the connection cannot be established
     def connect!
-      @beanstalk = Beaneater.new(beanstalk_addresses)
-      __setobj__(@beanstalk)
-      @beanstalk
+      @allq_wrapper = Backburner::AllqWrapper.new(allq_addresses)
+      __setobj__(@allq_wrapper)
+      @allq_wrapper
     end
 
-    # Attempts to ensure a connection to beanstalk is established but only if
+    def put(tube_name, data, opt)
+      pri = (opt[:pri] || 5).to_i
+      delay = opt[:delay].to_i
+      ttr = (opt[:ttr] || 600).to_i
+      @allq_wrapper.put2(data, pri, ttr, delay)
+    end
+
+    def get(tube_name)
+      @allq_wrapper.get(tube_name)
+    end
+
+    # Attempts to ensure a connection to allq is established but only if
     # we're not connected already
     # @param max_retries Integer The maximum number of times to attempt connecting. Defaults to 4
     # @param retry_delay Float   The time to wait between retrying to connect. Defaults to 1.0
-    # @raise [Beaneater::NotConnected] If beanstalk fails to connect after multiple attempts.
-    # @return Connection This Connection is returned if the connection to beanstalk is open or was able to be reconnected
+    # @raise [Beaneater::NotConnected] If allq fails to connect after multiple attempts.
+    # @return Connection This Connection is returned if the connection to allq is open or was able to be reconnected
     def ensure_connected!(max_retries = 4, retry_delay = 1.0)
       return self if connected?
 
@@ -111,7 +122,7 @@ module Backburner
         reconnect!
         return self
 
-      rescue Beaneater::NotConnected => e
+      rescue Exception => e
         if max_retries > 0
           max_retries -= 1
           sleep retry_delay
@@ -122,24 +133,24 @@ module Backburner
       end
     end
 
-    # Returns the beanstalk queue addresses
+    # Returns the allq queue addresses
     #
     # @example
-    #   beanstalk_addresses => ["127.0.0.1:11300"]
+    #   allq_addresses => ["127.0.0.1:11300"]
     #
-    def beanstalk_addresses
+    def allq_addresses
       uri = self.url.is_a?(Array) ? self.url.first : self.url
-      beanstalk_host_and_port(uri)
+      allq_host_and_port(uri)
     end
 
     # Returns a host and port based on the uri_string given
     #
     # @example
-    #   beanstalk_host_and_port("beanstalk://127.0.0.1") => "127.0.0.1:11300"
+    #   allq_host_and_port("allq://127.0.0.1") => "127.0.0.1:11300"
     #
-    def beanstalk_host_and_port(uri_string)
+    def allq_host_and_port(uri_string)
       uri = URI.parse(uri_string)
-      raise(BadURL, uri_string) if uri.scheme != 'beanstalk'.freeze
+      raise(BadURL, uri_string) if uri.scheme != 'allq'.freeze
       "#{uri.host}:#{uri.port || 11300}"
     end
   end # Connection

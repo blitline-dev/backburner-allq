@@ -36,11 +36,11 @@ module Backburner
 
       begin
         response = nil
-        connection = Backburner::Connection.new(Backburner.configuration.beanstalk_url)
+        connection = Backburner::Connection.new(Backburner.configuration.allq_url)
         connection.retryable do
-          tube = connection.tubes[expand_tube_name(queue || job_class)]
+          tube_name = expand_tube_name(queue || job_class)
           serialized_data = Backburner.configuration.job_serializer_proc.call(data)
-          response = tube.put(serialized_data, :pri => pri, :delay => delay, :ttr => ttr)
+          response = connection.put(serialized_data, :pri => pri, :delay => delay, :ttr => ttr)
         end
         return nil unless Backburner::Hooks.invoke_hook_events(job_class, :after_enqueue, *args)
       ensure
@@ -175,7 +175,7 @@ module Backburner
 
     # Reserve a job from the watched queues
     def reserve_job(conn, reserve_timeout = Backburner.configuration.reserve_timeout)
-      Backburner::Job.new(conn.tubes.reserve(reserve_timeout))
+      Backburner::Job.new(conn.get(@tube_names.sample))
     end
 
     # Returns a list of all tubes known within the system

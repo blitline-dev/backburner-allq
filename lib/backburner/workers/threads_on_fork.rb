@@ -213,8 +213,7 @@ module Backburner
 
       # Shortcut for watching a tube on our beanstalk connection
       def watch_tube(name, conn = connection)
-        @watching_tube = name
-        conn.tubes.watch!(name)
+        # No op for allq
       end
 
       def on_reconnect(conn)

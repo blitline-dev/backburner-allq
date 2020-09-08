@@ -5,7 +5,7 @@ Gem::Specification.new do |s|
   s.authors       = ["Nathan Esquenazi"]
   s.email         = ["nesquena@gmail.com"]
   s.description   = %q{Beanstalk background job processing made easy}
-  s.summary       = %q{Reliable beanstalk background job processing made easy for Ruby and Sinatra}
+  s.summary       = %q{Reliable allq background job processing made easy for Ruby and Sinatra}
   s.homepage      = "http://github.com/nesquena/backburner"
 
   s.files         = `git ls-files`.split($\)
@@ -16,7 +16,7 @@ Gem::Specification.new do |s|
   s.version       = Backburner::VERSION
   s.license       = 'MIT'
 
-  s.add_runtime_dependency 'beaneater', '~> 1.0'
+  s.add_runtime_dependency 'allq_rest'
   s.add_runtime_dependency 'dante', '> 0.1.5'
   s.add_runtime_dependency 'concurrent-ruby', '~> 1.0', '>= 1.0.1'
 
