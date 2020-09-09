@@ -48,12 +48,7 @@ module Backburner
       return false unless res
       # Execute the job
       @hooks.around_hook_events(job_name, :around_perform, *args) do
-        # We subtract one to ensure we timeout before beanstalkd does, except if:
-        #  a) ttr == 0, to support never timing out
-        #  b) ttr == 1, so that we don't accidentally set it to never time out
-        #  NB: A ttr of 1 will likely result in race conditions between
-        #  Backburner and beanstalkd and should probably be avoided
-        timeout_job_after(task.ttr > 1 ? task.ttr - 1 : task.ttr) { job_class.perform(*args) }
+        job_class.perform(*args)
       end
       task.delete
       # Invoke after perform hook

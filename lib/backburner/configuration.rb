@@ -21,8 +21,8 @@ module Backburner
     attr_accessor :job_parser_proc     # proc to parse a job body from a string
 
     def initialize
-      @allq_url       = "127.0.0.1:8090"
-      @tube_namespace      = ""
+      @allq_url       = "allq://127.0.0.1:8091"
+      @tube_namespace      = "backallq"
       @namespace_separator = "."
       @default_priority    = 5
       @respond_timeout     = 120

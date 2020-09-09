@@ -1,8 +1,6 @@
 require 'base64'
-require 'yajl'
 require 'timeout'
-require 'lz4-ruby'
-require 'allq_client'
+require 'allq_rest'
 
 module Backburner
   class AllqWatcher
@@ -81,7 +79,7 @@ module Backburner
   end
 
   class AllQWrapper
-    def initialize(url = Blitline::Constants::ALLQ_DEFAULT_EU_URL)
+    def initialize(url = 'localhost:8090')
       allq_conf = Allq::Configuration.new do |config|
         config.host = url
       end
@@ -129,35 +127,30 @@ module Backburner
       return nil if job.body.nil?
 
       job.body = Base64.decode64(job.body) if job
-      job_obj = Blitline::AllQJob.new(self, job)
+      job_obj = Backburner::AllQJob.new(self, job)
       job_obj
     end
 
     def get(tube_name = 'default')
       job = nil
-      delt = Blitline::Utils.get_delta do
-        job = @client.job_get(tube_name)
-      end
-      puts "Allq http get delta: #{delt} #{tube_name} #{job}" if delt.to_f > 1.5
+      job = @client.job_get(tube_name)
 
-      @recent_times.push(delt.to_f)
-      @recent_times.shift if @recent_times.size > 2
       # Inplace decode
       job.body = Base64.decode64(job.body) if job&.body
 
-      job_obj = Blitline::AllQJob.new(self, job)
+      job_obj = Backburner::AllQJob.new(self, job)
       job_obj
     rescue StandardError => ex
       if ex.message == "Couldn't resolve host name"
-        BlitlineLogger.log("COUDNT RESOLVE HOST NAME------ SHOULD REBOOT")
+        puts("COUDNT RESOLVE HOST NAME------ SHOULD REBOOT")
       else
-        BlitlineLogger.log(ex)
+        puts(ex)
       end
     end
 
     def close
     rescue StandardError => ex
-      BlitlineLogger.log(ex)
+      puts(ex)
     end
 
     def map_priority(app_priority)
@@ -180,9 +173,9 @@ module Backburner
     end
 
     def log_result(job_result)
-      BlitlineLogger.log("ALLQ-HTTP-JOB-ID=#{job_result.job_id}")
+      puts("ALLQ-HTTP-JOB-ID=#{job_result.job_id}")
     rescue StandardError => ex
-      BlitlineLogger.log(ex)
+      puts(ex)
     end
 
     def build_new_job(body, options)
@@ -243,30 +236,27 @@ module Backburner
       begin
         Timeout.timeout(10) do
           if body && body.to_s.include?('["default"]')
-            BlitlineLogger.log "PUTTING DEFAULT! #{caller.inspect}"
+            puts "PUTTING DEFAULT! #{caller.inspect}"
           end
 
-          delt = Blitline::Utils.get_delta do
-            if is_parent
-              new_job = build_new_parent_job(body, options)
-              result = @client.parent_job_post(new_job)
-            else
-              new_job = build_new_job(body, options)
-              result = @client.job_post(new_job)
-            end
-            raise 'PUT returned nil' if result.nil? || result.to_s == ''
+          if is_parent
+            new_job = build_new_parent_job(body, options)
+            result = @client.parent_job_post(new_job)
+          else
+            new_job = build_new_job(body, options)
+            result = @client.job_post(new_job)
           end
-          BlitlineLogger.log "Allq http put delta: #{delt}"
+          raise 'PUT returned nil' if result.nil? || result.to_s == ''
         end
       rescue Timeout::Error
-        BlitlineLogger.log('ALLQ_PUT_TIMEOUT')
+        puts('ALLQ_PUT_TIMEOUT')
         sleep(5)
         retry_count += 1
         retry if retry_count < 4
         raise 'Failed to put on allq, we are investigating the problem, please try again'
       rescue StandardError => ex
-        BlitlineLogger.log('Failed to ALLQ PUT')
-        BlitlineLogger.log(ex)
+        puts('Failed to ALLQ PUT')
+        puts(ex)
         retry_count += 1
         sleep(5)
         retry if retry_count < 4
@@ -292,7 +282,7 @@ module Backburner
       end
       final_stats
     rescue StandardError => ex
-      BlitlineLogger.log(ex)
+      puts(ex)
       {}
     end
 
@@ -302,7 +292,7 @@ module Backburner
       count = tube_stats['ready'].to_i if tube_stats && tube_stats['ready']
       count
     rescue StandardError => ex
-      BlitlineLogger.log(ex)
+      puts(ex)
       -1
     end
 
@@ -310,7 +300,7 @@ module Backburner
       result = get_ready_by_tube('default')
       result.to_i
     rescue StandardError => ex
-      BlitlineLogger.log(ex)
+      puts(ex)
       0
     end
   end

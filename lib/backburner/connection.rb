@@ -1,7 +1,7 @@
 require 'delegate'
 
 module Backburner
-  class Connection < SimpleDelegator
+  class Connection
     class BadURL < RuntimeError; end
 
     attr_accessor :url, :allq_wrapper
@@ -27,7 +27,6 @@ module Backburner
     def close
       @allq_wrapper.close if @allq_wrapper
       @allq_wrapper = nil
-      __setobj__(@allq_wrapper)
     end
 
     # Determines if the connection to allq is currently open
@@ -67,7 +66,7 @@ module Backburner
       begin
         yield
 
-      rescue Beaneater::NotConnected
+      rescue Exception => e
         if retry_count > 0
           reconnect!
           retry_count -= 1
@@ -80,8 +79,6 @@ module Backburner
       end
     end
 
-    protected
-
     # Attempt to ensure we're connected to allq if the missing method is
     # present in the delegate and we haven't shut down the connection on purpose
     # @raise [Beaneater::NotConnected] If allq fails to connect after multiple attempts.
@@ -93,8 +90,7 @@ module Backburner
     # Connects to a allq queue
     # @raise Beaneater::NotConnected if the connection cannot be established
     def connect!
-      @allq_wrapper = Backburner::AllqWrapper.new(allq_addresses)
-      __setobj__(@allq_wrapper)
+      @allq_wrapper = Backburner::AllQWrapper.new(allq_addresses)
       @allq_wrapper
     end
 
@@ -102,7 +98,7 @@ module Backburner
       pri = (opt[:pri] || 5).to_i
       delay = opt[:delay].to_i
       ttr = (opt[:ttr] || 600).to_i
-      @allq_wrapper.put2(data, pri, ttr, delay)
+      @allq_wrapper.put2(data, pri, ttr, tube_name, delay)
     end
 
     def get(tube_name)
