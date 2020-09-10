@@ -4,9 +4,9 @@ require File.expand_path('../lib/backburner/version', __FILE__)
 Gem::Specification.new do |s|
   s.authors       = ["Jason Malcolm"]
   s.email         = ["jason@blitline.com"]
-  s.description   = %q{Beanstalk background job processing made easy}
+  s.description   = %q{Allq background job processing made easy}
   s.summary       = %q{Reliable allq background job processing made easy for Ruby and Sinatra}
-  s.homepage      = "http://github.com/nesquena/backburner"
+  s.homepage      = "http://github.com/blitline-dev/backburner-allq"
 
   s.files         = `git ls-files`.split($\)
   s.executables   = s.files.grep(%r{^bin/}).map{ |f| File.basename(f) }

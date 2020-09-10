@@ -1,4 +1,0 @@
-- Custom front-end in sinatra for viewing beanstalk jobs
-  - Refer to https://github.com/denniskuczynski/beanstalkd_view
-- Fork jobs to control memory
-  - https://github.com/michaeldwan/stalker/commit/386267690a7c03e11d1a8b7b6f08b7c9c7cd2c0d

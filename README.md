@@ -1,14 +1,14 @@
 # Backburner [![Build Status](https://travis-ci.org/nesquena/backburner.svg?branch=master)](https://travis-ci.org/nesquena/backburner)
 
-Backburner is a [beanstalkd](http://kr.github.com/beanstalkd/)-powered job queue that can handle a very high volume of jobs.
+Backburner-allq is a [allq](http://www.allqueue.com)-powered job queue that can handle a very high volume of jobs.
 You create background jobs and place them on multiple work queues to be processed later.
 
-Processing background jobs reliably has never been easier than with beanstalkd and Backburner. This gem works with any ruby-based
+Processing background jobs reliably has never been easier than with allq and Backburner. This gem works with any ruby-based
 web framework, but is especially suited for use with [Sinatra](http://sinatrarb.com), [Padrino](http://padrinorb.com) and Rails.
 
-If you want to use beanstalk for your job processing, consider using Backburner.
+If you want to use allq for your job processing, consider using Backburner.
 Backburner is heavily inspired by Resque and DelayedJob. Backburner stores all jobs as simple JSON message payloads.
-Persistent queues are supported when beanstalkd persistence mode is enabled.
+Persistent queues are supported when allq persistence mode is enabled.
 
 Backburner supports multiple queues, job priorities, delays, and timeouts. In addition,
 Backburner has robust support for retrying failed jobs, handling error cases,
@@ -26,28 +26,14 @@ libraries under the hood. Every job queue requires a queue store that jobs are p
 In the case of Resque, jobs are processed through **Redis**, a persistent key-value store. In the case of DelayedJob, jobs are processed through
 **ActiveRecord** and a database such as PostgreSQL.
 
-The work queue underlying these gems tells you infinitely more about the differences than anything else.
-Beanstalk is probably the best solution for job queues available today for many reasons.
-The real question then is... "Why Beanstalk?".
 
-## Why Beanstalk?
+You will quickly see that **allq** is an underrated but incredible project that is extremely well-suited as a job queue.
+Significantly better suited for this task than Redis or a database. 
 
-Illya has an excellent blog post
-[Scalable Work Queues with Beanstalk](http://www.igvita.com/2010/05/20/scalable-work-queues-with-beanstalk/) and
-Adam Wiggins posted [an excellent comparison](http://adam.herokuapp.com/past/2010/4/24/beanstalk_a_simple_and_fast_queueing_backend/).
+A single instance of Allq is perfectly capable of handling thousands of jobs a second (or more, depending on your job size)
+because it is an in-memory, event-driven system. 
 
-You will quickly see that **beanstalkd** is an underrated but incredible project that is extremely well-suited as a job queue.
-Significantly better suited for this task than Redis or a database. Beanstalk is a simple,
-and a very fast work queue service rolled into a single binary - it is the memcached of work queues.
-Originally built to power the backend for the 'Causes' Facebook app, it is a mature and production ready open source project.
-[PostRank](http://www.postrank.com) uses beanstalk to reliably process millions of jobs a day.
-
-A single instance of Beanstalk is perfectly capable of handling thousands of jobs a second (or more, depending on your job size)
-because it is an in-memory, event-driven system. Powered by libevent under the hood,
-it requires zero setup (launch and forget, à la memcached), optional log based persistence, an easily parsed ASCII protocol,
-and a rich set of tools for job management that go well beyond a simple FIFO work queue.
-
-Beanstalkd supports the following features out of the box:
+Allq supports the following features out of the box:
 
 | Feature | Description                     |
 | ------- | ------------------------------- |
@@ -59,26 +45,13 @@ Beanstalkd supports the following features out of the box:
 | **Persistence**     | Jobs are stored in memory for speed, but logged to disk for safe keeping. |
 | **Federation**      | Horizontal scalability provided through federation by the client. |
 | **Error Handling**  | Bury any job which causes an error for later debugging and inspection.|
+| **Fair Queueing**   | Allows you to shard work across queues for fair client queuing.|
+| **Workflows**       | Allows you tell Job C to wait for Job A and Job B to finish first.|
 
-Keep in mind that these features are supported out of the box with beanstalk and require no special code within this gem to support.
-In the end, **beanstalk is the ideal job queue** while also being ridiculously easy to install and setup.
+Keep in mind that these features are supported out of the box with allq and require no special code within this gem to support.
+In the end, **allq is the ideal job queue** while also being ridiculously easy to install and setup.
 
 ## Installation
-
-First, you probably want to [install beanstalkd](http://kr.github.com/beanstalkd/download.html), which powers the job queues.
-Depending on your platform, this should be as simple as (for Ubuntu):
-
-    $ sudo apt-get install beanstalkd
-
-Add this line to your application's Gemfile:
-
-    gem 'backburner'
-
-And then execute:
-
-    $ bundle
-
-Or install it yourself as:
 
     $ gem install backburner
 
@@ -88,7 +61,7 @@ Backburner is extremely simple to setup. Just configure basic settings for backb
 
 ```ruby
 Backburner.configure do |config|
-  config.beanstalk_url       = "beanstalk://127.0.0.1"
+  config.beanstalk_url       = "allq://127.0.0.1:8090"
   config.tube_namespace      = "some.app.production"
   config.namespace_separator = "."
   config.on_error            = lambda { |e| puts e }
@@ -112,7 +85,7 @@ The key options available are:
 
 | Option                | Description                                                          |
 | -----------------     | -------------------------------                                      |
-| `beanstalk_url`       | Address for beanstalkd connection i.e 'beanstalk://127.0.0.1'        |
+| `allq_url`            | Address for allq connection i.e 'allq://127.0.0.1:8090'              |
 | `tube_namespace`      | Prefix used for all tubes related to this backburner queue.          |
 | `namespace_separator` | Separator used for namespace and queue name                          |
 | `on_error`            | Lambda invoked with the error whenever any job in the system fails.  |
@@ -129,15 +102,10 @@ The key options available are:
 | `job_serializer_proc` | Lambda serializes a job body to a string to write to the task        |
 | `job_parser_proc`     | Lambda parses a task body string to a hash                           |
 
-## Breaking Changes
-
-Before **v0.4.0**: Jobs were placed into default queues based on the name of the class creating the queue. i.e NewsletterJob would
-be put into a 'newsletter-job' queue. As of 0.4.0, all jobs are placed into a primary queue named "my.app.namespace.backburner-jobs"
-unless otherwise specified.
 
 ## Usage
 
-Backburner allows you to create jobs and place them onto any number of beanstalk tubes, and later pull those jobs off the tubes and
+Backburner allows you to create jobs and place them onto any number of allq tubes, and later pull those jobs off the tubes and
 process them asynchronously with a worker.
 
 ### Enqueuing Jobs ###
@@ -165,7 +133,7 @@ class NewsletterJob
 
   # optional, defaults to respond_timeout in config
   def self.queue_respond_timeout
-    300 # number of seconds before job times out, 0 to avoid timeout. NB: A timeout of 1 second will likely lead to race conditions between Backburner and beanstalkd and should be avoided
+    300 # number of seconds before job times out, 0 to avoid timeout. NB: A timeout of 1 second will likely lead to race conditions between Backburner and allq and should be avoided
   end
 
   # optional, defaults to retry_delay_proc in config
@@ -387,15 +355,15 @@ This is why our examples use object IDs instead of passing around objects.
 
 ### Named Priorities
 
-As of v0.4.0, Backburner has support for named priorities. beanstalkd priorities are numerical but
+As of v0.4.0, Backburner has support for named priorities. allq priorities are numerical but
 backburner supports a mapping between a word and a numerical value. The following priorities are
-available by default: `high` is 0, `medium` is 100, and `low` is 200.
+available by default: `high` is 0, `medium` is 4, and `low` is 9.
 
 Priorities can be customized with:
 
 ```ruby
 Backburner.configure do |config|
-  config.priority_labels = { :custom => 50, :useful => 5 }
+  config.priority_labels = { :custom => 1, :useful => 5 }
   # or append to default priorities with
   # config.priority_labels  = Backburner::Configuration::PRIORITY_LABELS.merge(:foo => 5)
 end
@@ -557,8 +525,7 @@ Check out [HOOKS.md](https://github.com/nesquena/backburner/blob/master/HOOKS.md
 
 ### Workers in Production
 
-Once you have Backburner setup in your application, starting workers is really easy. Once [beanstalkd](http://kr.github.com/beanstalkd/download.html)
-is installed, your best bet is to use the built-in rake task that comes with Backburner. Simply add the task to your Rakefile:
+Once you have Backburner setup in your application, starting workers is really easy. Simply add the task to your Rakefile:
 
 ```ruby
 # Rakefile
@@ -609,8 +576,7 @@ backburner -e $environment
 
 #### Reconnecting
 
-In Backburner, if the beanstalkd connection is temporarily severed, several retries to establish the connection will be attempted.
-After several retries, if the connection is still not able to be made, a `Beaneater::NotConnected` exception will be raised.
+In Backburner, if the allq connection is temporarily severed, several retries to establish the connection will be attempted.
 You can manually catch this exception, and attempt another manual retry using `Backburner::Worker.retry_connection!`.
 
 ### Web Front-end

@@ -105,7 +105,7 @@ module Backburner
       # Process the tube settings
       # This overrides @tubes_data set by process_tube_names method. So a tube has name 'super_job:5'
       # and the tube class has setting queue_jobs_limit 10, the result limit will be 10
-      # If the tube is known by existing beanstalkd queue, but not by class - skip it
+      # If the tube is known by existing allq queue, but not by class - skip it
       #
       def process_tube_options
         Backburner::Worker.known_queue_classes.each do |queue|

@@ -149,14 +149,18 @@ module Backburner
         return
       end
 
-      # NB: There's a slight chance here that the connection to beanstalkd has
+      # NB: There's a slight chance here that the connection to allq has
       # gone down between the time we reserved / processed the job and here.
       num_retries = job.releases
       max_job_retries = resolve_max_job_retries(job.job_class)
       retry_status = "failed: attempt #{num_retries+1} of #{max_job_retries+1}"
       retry_delay = resolve_retry_delay(job.job_class)
       delay = resolve_retry_delay_proc(job.job_class).call(retry_delay, num_retries) rescue retry_delay
-      job.release(delay)
+      if num_retries + 1 > max_job_retries
+        job.bury
+      else
+        job.release(delay)
+      end
       self.log_job_end(job.name, "#{retry_status}, retrying in #{delay}s") if job_started_at
 
       handle_error(e, job.name, job.args, job)
