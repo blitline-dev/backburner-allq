@@ -96,9 +96,17 @@ module Backburner
 
     def put(tube_name, data, opt)
       pri = (opt[:pri] || 5).to_i
-      delay = opt[:delay].to_i
       ttr = (opt[:ttr] || 600).to_i
-      @allq_wrapper.put2(data, pri, ttr, tube_name, delay)
+
+      options = {
+        tube_name: tube_name,
+        pri: pri,
+        delay: opt[:delay].to_i,
+        ttr: ttr
+      }
+
+      options.merge!(opt)
+      @allq_wrapper.put(data, options)
     end
 
     def get(tube_name)

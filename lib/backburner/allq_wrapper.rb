@@ -114,12 +114,16 @@ module Backburner
       @client.release_put(job.id)
     end
 
-    def bury(job); end
+    def bury(job)
+     @client.bury_put(job.id)
+    end
 
     def tube_names
       stats_hash = stats
       stats_hash.keys
     end
+    alias_method :tubes, :tube_names
+
 
     def peek_buried(tube_name = 'default')
       job = nil
@@ -161,15 +165,8 @@ module Backburner
 
       default = 5
 
-      return default if app_priority == 32_000
-
-      return 6 if app_priority >= 33_000
-
-      return 7 if app_priority >= 35_000
-
-      return 8 if app_priority >= 37_000
-
-      default
+      # return app_priority unless larger than 10
+      app_priority > 10 ? 5 : app_priority
     end
 
     def log_result(job_result)
@@ -191,6 +188,7 @@ module Backburner
                                  ttl: ttl,
                                  delay: delay,
                                  priority: adjusted_priority,
+                                 shard_key: options[:shard_key],
                                  parent_id: parent_id)
       new_job
     end
@@ -212,19 +210,9 @@ module Backburner
                                               priority: adjusted_priority,
                                               timeout: timeout,
                                               run_on_timeout: run_on_timeout,
+                                              shard_key: options[:shard_key],
                                               limit: limit)
       new_parent_job
-    end
-
-    def put2(body, pri = 5, ttl = 600, tube_name = "default", delay = 0)
-      # Old school way
-      options = {
-        pri: pri,
-        ttl: ttl,
-        tube_name: tube_name,
-        delay: delay
-      }
-      put(body, options)
     end
 
     def put(body, options)
@@ -236,7 +224,6 @@ module Backburner
       begin
         Timeout.timeout(10) do
           if body && body.to_s.include?('["default"]')
-            puts "PUTTING DEFAULT! #{caller.inspect}"
           end
 
           if is_parent
@@ -265,6 +252,11 @@ module Backburner
       result
     end
 
+    def stats(tube)
+      final_stats = stats
+      final_stats[tube]
+    end
+
     def stats
       raw_stats = @admin.stats_get
       final_stats = {}
@@ -285,6 +277,11 @@ module Backburner
       puts(ex)
       {}
     end
+
+    def beanstalk_style_stats
+    end
+
+
 
     def get_ready_by_tube(name)
       count = -1

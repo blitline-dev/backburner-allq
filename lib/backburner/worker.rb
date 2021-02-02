@@ -40,8 +40,7 @@ module Backburner
         connection.retryable do
           tube_name = expand_tube_name(queue || job_class)
           serialized_data = Backburner.configuration.job_serializer_proc.call(data)
-          puts "Tube name #{tube_name}"
-          response = connection.put(tube_name, serialized_data, :pri => pri, :delay => delay, :ttr => ttr)
+          response = connection.put(tube_name, serialized_data, :pri => pri, :delay => delay, :ttr => ttr, :shard_key => opts[:shard_key])
         end
         return nil unless Backburner::Hooks.invoke_hook_events(job_class, :after_enqueue, *args)
       ensure
