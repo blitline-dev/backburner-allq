@@ -207,7 +207,9 @@ module Backburner
       def run_while_can(conn = connection)
         while @garbage_after.nil? or @garbage_after > @runs
           @runs += 1 # FIXME: Likely race condition
-          work_one_job(conn)
+          ran_job = work_one_job(conn)
+          # Wait a second if we didn't find a job
+          sleep(rand() * 3) unless ran_job
         end
       end
 
