@@ -26,8 +26,8 @@ module Backburner
       @name = body["class"] || body[:class]
       @args = body["args"] || body[:args]
     rescue => ex # Job was not valid format
-      self.bury
-      raise JobFormatInvalid, "Job body could not be parsed: #{ex.inspect}"
+#      self.bury
+#      raise JobFormatInvalid, "Job body could not be parsed: #{ex.inspect}"
     end
 
     # Sets the delegator object to the underlying beaneater job
@@ -60,12 +60,12 @@ module Backburner
 
     def bury
       @hooks.invoke_hook_events(job_name, :on_bury, *args)
-      task.bury
+      @task.bury
     end
 
     def retry(count, delay)
       @hooks.invoke_hook_events(job_name, :on_retry, count, delay, *args)
-      task.release(delay: delay)
+      @task.release(delay: delay)
     end
 
     # Returns the class for the job handler

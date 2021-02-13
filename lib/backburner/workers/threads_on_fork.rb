@@ -181,6 +181,8 @@ module Backburner
 
         @runs = 0
 
+        puts "Threads number = #{@threads_number}"
+
         if @threads_number == 1
           watch_tube(name)
           run_while_can
@@ -205,11 +207,15 @@ module Backburner
 
       # Run work_one_job while we can
       def run_while_can(conn = connection)
+        puts "Run while can"
         while @garbage_after.nil? or @garbage_after > @runs
           @runs += 1 # FIXME: Likely race condition
           ran_job = work_one_job(conn)
           # Wait a second if we didn't find a job
-          sleep(rand() * 3) unless ran_job
+          unless ran_job
+            puts "sleeping"
+            sleep(rand() * 3)
+          end
         end
       end
 

@@ -38,6 +38,10 @@ module Backburner
       end
     end
 
+    def tubes
+      @allq_wrapper.tube_names if @allq_wrapper
+    end
+
     # Attempt to reconnect to allq. Note: the connection will not be watching
     # or using the tubes it was before it was reconnected (as it's actually a
     # completely new connection)
