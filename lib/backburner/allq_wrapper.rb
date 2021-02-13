@@ -13,14 +13,16 @@ module Backburner
 
     def watch
       Thread.new do
-        ran = false
-        job = @allq_wrapper.get(@tube_name)
-        if job.body
-          perform(job)
-          ran = true
+        loop do
+          ran = false
+          job = @allq_wrapper.get(@tube_name)
+          if job.body
+            perform(job)
+            ran = true
+          end
+          # Wait if nothing returned
+          sleep(rand() * 3) unless ran
         end
-        # Wait if nothing returned
-        sleep(rand() * 3) unless ran
       end
     end
   end
@@ -122,8 +124,10 @@ module Backburner
       stats_hash = stats
       stats_hash.keys
     end
-    alias_method :tubes, :tube_names
 
+    def tubes
+      tube_names
+    end
 
     def peek_buried(tube_name = 'default')
       job = nil
@@ -277,11 +281,6 @@ module Backburner
       puts(ex)
       {}
     end
-
-    def beanstalk_style_stats
-    end
-
-
 
     def get_ready_by_tube(name)
       count = -1
