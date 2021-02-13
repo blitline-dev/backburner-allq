@@ -22,7 +22,7 @@ module Backburner
 
     def initialize
       @allq_url       = "allq://127.0.0.1:8091"
-      @tube_namespace      = "backallq"
+      @tube_namespace      = "backburner"
       @namespace_separator = "."
       @default_priority    = 5
       @respond_timeout     = 120

@@ -58,7 +58,7 @@ module Backburner
               loop do
                 begin
                   break if @in_shutdown
-                  work_one_job(memo_connection)
+                  work_one_job(memo_connection, tube_name)
                 rescue => e
                   log_error("Exception caught in thread pool loop. Continuing. -> #{e.message}\nBacktrace: #{e.backtrace}")
                 end

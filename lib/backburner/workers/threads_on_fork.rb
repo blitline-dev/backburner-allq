@@ -210,7 +210,7 @@ module Backburner
         puts "Run while can"
         while @garbage_after.nil? or @garbage_after > @runs
           @runs += 1 # FIXME: Likely race condition
-          ran_job = work_one_job(conn)
+          ran_job = work_one_job(conn, @watched_tube_name)
           # Wait a second if we didn't find a job
           unless ran_job
             puts "sleeping"
@@ -221,6 +221,7 @@ module Backburner
 
       # Shortcut for watching a tube on our beanstalk connection
       def watch_tube(name, conn = connection)
+        @watched_tube_name = name
         # No op for allq
       end
 

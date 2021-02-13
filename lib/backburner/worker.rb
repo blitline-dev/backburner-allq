@@ -126,9 +126,14 @@ module Backburner
     # @example
     #   @worker.work_one_job
     # @raise [Beaneater::NotConnected] If beanstalk fails to connect multiple times.
-    def work_one_job(conn = connection)
+    def work_one_job(conn = connection, tube_name = nil)
+      if tube_name.nil?
+        self.log_error "Sampling tube, this is bad practice for Allq"
+        tube_name = @tube_names.sample 
+      end
+      
       begin
-        job = reserve_job(conn)
+        job = reserve_job(conn, tube_name)
       rescue Exception => e
         self.log_error "Sleeping"
         self.log_error "Exception: #{e.full_message}"
@@ -158,8 +163,6 @@ module Backburner
           retry_status = "failed: attempt #{num_retries+1} of #{max_job_retries+1}"
           retry_delay = resolve_retry_delay(job.job_class)
           delay = resolve_retry_delay_proc(job.job_class).call(retry_delay, num_retries) rescue retry_delay
-          puts "num_retries = #{num_retries}"
-          puts "max_job_retries = #{max_job_retries}"
           
           if num_retries + 1 > max_job_retries
             job.bury
@@ -185,8 +188,8 @@ module Backburner
     end
 
     # Reserve a job from the watched queues
-    def reserve_job(conn, reserve_timeout = Backburner.configuration.reserve_timeout)
-      job = conn.get(@tube_names.sample)
+    def reserve_job(conn, tube_name, reserve_timeout = Backburner.configuration.reserve_timeout)
+      job = conn.get(tube_name)
       return nil if job.nil? || job.body == nil?
       Backburner::Job.new(job)
     end

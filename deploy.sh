@@ -1,3 +1,3 @@
 echo "Did you update the version?"
 gem build backburner-allq.gemspec
-gem push backburner-allq-1.0.18.gem
+gem push backburner-allq-1.0.20.gem
