@@ -81,6 +81,7 @@ module Backburner
   end
 
   class AllQWrapper
+    DEFAULT_TIMEOUT = 17800
     def initialize(url = 'localhost:8090')
       allq_conf = Allq::Configuration.new do |config|
         config.host = url
@@ -182,7 +183,7 @@ module Backburner
     def build_new_job(body, options)
       adjusted_priority = map_priority(options[:pri] || 5)
 
-      ttl = options[:ttl] || 600
+      ttl = options[:ttl] || options[:ttr] || DEFAULT_TIMEOUT
       tube_name = options[:tube_name] || 'default'
       delay = options[:delay] || 0
       parent_id = options[:parent_id]
@@ -199,7 +200,7 @@ module Backburner
 
     def build_new_parent_job(body, options)
       adjusted_priority = map_priority(options[:pri] || 5)
-      ttl = options[:ttl] || 600
+      ttl = options[:ttl] || options[:ttr] || DEFAULT_TIMEOUT
       tube_name = options[:tube_name] || 'default'
       delay = options[:delay] || 0
       parent_id = options[:parent_id]

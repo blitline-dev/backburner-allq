@@ -31,7 +31,7 @@ module Backburner
 
       return nil unless res # stop if hook is false
 
-      data = { :class => job_class.name, :args => args }
+      data = { :class => job_class.name, :args => args, :ttr => ttr }
       queue = opts[:queue] && (Proc === opts[:queue] ? opts[:queue].call(job_class) : opts[:queue])
 
       begin

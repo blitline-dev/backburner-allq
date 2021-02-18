@@ -25,6 +25,7 @@ module Backburner
       @body = task.body.is_a?(Hash) ? task.body : Backburner.configuration.job_parser_proc.call(task.body)
       @name = body["class"] || body[:class]
       @args = body["args"] || body[:args]
+      @ttr  = body["ttr"] || body[:ttr]
     rescue => ex # Job was not valid format
 #      self.bury
 #      raise JobFormatInvalid, "Job body could not be parsed: #{ex.inspect}"
@@ -42,13 +43,13 @@ module Backburner
     # @example
     #   @task.process
     #
-    def process
+    def process      
       # Invoke before hook and stop if false
       res = @hooks.invoke_hook_events(job_name, :before_perform, *args)
       return false unless res
       # Execute the job
       @hooks.around_hook_events(job_name, :around_perform, *args) do
-        job_class.perform(*args)
+        timeout_job_after(@ttr > 1 ? @ttr - 1 : @ttr) { job_class.perform(*args) }
       end
       task.delete
       # Invoke after perform hook
