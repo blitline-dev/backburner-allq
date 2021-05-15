@@ -29,6 +29,9 @@ module Backburner
       Backburner::Worker.enqueue(job_class, args, {})
     end
 
+    def enqueue(job_class, args, shard_key = nil)
+      enqueue(job_class, args, { shard_key: shard_key.nil? ? "X" : shard_key.to_s })
+    end
     # Begins working on jobs enqueued with optional tubes specified
     #
     # @example
